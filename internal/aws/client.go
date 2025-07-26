@@ -94,7 +94,7 @@ func (c Client) TerminateInstance(ctx context.Context, in Instance) error {
 		if _, err := c.ec2Svc.DeleteSecurityGroup(ctx, &ec2.DeleteSecurityGroupInput{GroupId: aws.String(sg.Id)}); err != nil {
 			return errs.FromAwsApi(err, "ec2 delete-security-group")
 		}
-		c.logger.InfoContext(ctx, fmt.Sprintf("deleted %s security group", sg.Name))
+		c.logger.InfoContext(ctx, fmt.Sprintf("deleted %s %s security group", sg.Name, sg.Id))
 	}
 	return nil
 }

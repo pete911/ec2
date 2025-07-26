@@ -35,8 +35,5 @@ func runCreate(cmd *cobra.Command, args []string) {
 		fmt.Printf("create %s EC2: %v\n", name, err)
 		os.Exit(1)
 	}
-
 	fmt.Printf("EC2 instance %s created\n", instance.Id)
-	fmt.Printf("    public dns %s\n", instance.PublicDnsName)
-	fmt.Printf("    public IP  %s\n", instance.PublicIp)
 }
