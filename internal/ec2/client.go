@@ -47,7 +47,7 @@ func (c Client) List() (aws.Instances, error) {
 
 func (c Client) Create(name string, subnet vpc.Subnet) (aws.Instance, error) {
 	// TODO - add option to supply custom user data
-	instance, err := c.runInstance(name, subnet.Id, "")
+	instance, err := c.runInstance(name, subnet, "")
 	if err != nil {
 		return aws.Instance{}, err
 	}
@@ -85,14 +85,14 @@ func (c Client) describeInstanceById(id string) (aws.Instance, error) {
 	return c.awsClient.DescribeInstanceById(ctx, id)
 }
 
-func (c Client) runInstance(name, subnetId, userData string) (aws.Instance, error) {
+func (c Client) runInstance(name string, subnet vpc.Subnet, userData string) (aws.Instance, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
 	config := NewConfig(name, c.awsClient.AccountId, c.awsClient.Region)
 	input := aws.RunInstancesInput{
 		Metadata:        config.meta,
-		SubnetId:        subnetId,
+		Subnet:          subnet,
 		UserData:        userData,
 		InstanceProfile: config.GetInstanceProfileInput(),
 	}

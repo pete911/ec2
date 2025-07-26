@@ -89,11 +89,12 @@ func (c Client) TerminateInstance(ctx context.Context, in Instance) error {
 
 	// sometimes it takes longer for ENI to disappear, retry deleting of security group
 	// if this happens, add retry loop
-	for _, groupName := range instance.SecurityGroupNames {
-		if _, err := c.ec2Svc.DeleteSecurityGroup(ctx, &ec2.DeleteSecurityGroupInput{GroupName: aws.String(groupName)}); err != nil {
+	for _, sg := range instance.SecurityGroups {
+		// has to use security group id, name only works in default VPC
+		if _, err := c.ec2Svc.DeleteSecurityGroup(ctx, &ec2.DeleteSecurityGroupInput{GroupId: aws.String(sg.Id)}); err != nil {
 			return errs.FromAwsApi(err, "ec2 delete-security-group")
 		}
-		c.logger.InfoContext(ctx, fmt.Sprintf("deleted %s security group", groupName))
+		c.logger.InfoContext(ctx, fmt.Sprintf("deleted %s security group", sg.Name))
 	}
 	return nil
 }
@@ -109,7 +110,7 @@ func (c Client) RunInstance(ctx context.Context, v RunInstancesInput) (Instance,
 		return Instance{}, fmt.Errorf("instance with %s name already exists", v.Metadata.Name)
 	}
 
-	securityGroupId, err := c.createSecurityGroup(ctx, v.Metadata)
+	securityGroupId, err := c.createSecurityGroup(ctx, v)
 	if err != nil {
 		return Instance{}, err
 	}
@@ -127,7 +128,7 @@ func (c Client) RunInstance(ctx context.Context, v RunInstancesInput) (Instance,
 		ImageId:          aws.String(ssmImageId),
 		InstanceType:     types.InstanceTypeT3Micro,
 		SecurityGroupIds: []string{securityGroupId},
-		SubnetId:         aws.String(v.SubnetId),
+		SubnetId:         aws.String(v.Subnet.Id),
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeInstance,
@@ -216,14 +217,15 @@ func (c Client) describeInstances(ctx context.Context, filters []types.Filter) (
 	return instances, nil
 }
 
-func (c Client) createSecurityGroup(ctx context.Context, in MetadataInput) (string, error) {
+func (c Client) createSecurityGroup(ctx context.Context, in RunInstancesInput) (string, error) {
 	sgIn := &ec2.CreateSecurityGroupInput{
-		GroupName:   aws.String(in.Name),
+		VpcId:       aws.String(in.Subnet.VpcId),
+		GroupName:   aws.String(in.Metadata.Name),
 		Description: aws.String("ec2 project"),
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeSecurityGroup,
-				Tags:         in.toTags(),
+				Tags:         in.Metadata.toTags(),
 			},
 		},
 	}
@@ -234,30 +236,7 @@ func (c Client) createSecurityGroup(ctx context.Context, in MetadataInput) (stri
 	}
 
 	groupId := aws.ToString(sgOut.GroupId)
-	c.logger.DebugContext(ctx, fmt.Sprintf("creaetd %s security group with %s id", in.Name, groupId))
-
-	// TODO - this will be egress not ingress and for egress we want all traffic internal
-	// within VPC and port 80 and 443 to public internet
-	// add inbound rule to security group
-
-	//sgRuleIn := &ec2.AuthorizeSecurityGroupIngressInput{
-	//	CidrIp:     aws.String(inboundCidr),
-	//	GroupId:    aws.String(groupId),
-	//	IpProtocol: aws.String("udp"),
-	//	FromPort:   aws.Int32(int32(inboundPort)),
-	//	ToPort:     aws.Int32(int32(inboundPort)),
-	//	TagSpecifications: []types.TagSpecification{
-	//		{
-	//			ResourceType: types.ResourceTypeSecurityGroupRule,
-	//			Tags:         in.toTags(),
-	//		},
-	//	},
-	//}
-	//
-	//if _, err := c.ec2Svc.AuthorizeSecurityGroupIngress(ctx, sgRuleIn); err != nil {
-	//	return "", errs.FromAwsApi(err, "ec2 authorize-security-group-ingress")
-	//}
-	c.logger.DebugContext(ctx, fmt.Sprintf("added inbound rule to %s security group", groupId))
+	c.logger.DebugContext(ctx, fmt.Sprintf("creaetd %s security group with %s id", in.Metadata.Name, groupId))
 	return groupId, nil
 }
 
