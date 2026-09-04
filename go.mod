@@ -1,11 +1,11 @@
 module github.com/pete911/ec2
 
-go 1.25.0
+go 1.27
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.45.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.326.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.328.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.62.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.48.0
 	github.com/aws/smithy-go v1.28.1
@@ -26,6 +26,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.41.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.9 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 )
